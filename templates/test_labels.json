@@ -1,4 +1,5 @@
 {
+  "page_title": "章节测试",
   "section": {
     "choice": "一、选择题",
     "tf": "二、判断题",
@@ -6,6 +7,7 @@
     "essay": "四、问答题",
     "comprehensive": "五、综合题"
   },
+  "section_order": ["choice", "tf", "short", "essay", "comprehensive"],
   "points_suffix": "分",
   "true_label": "正确",
   "false_label": "错误",
@@ -18,5 +20,6 @@
   "graded_label": "已批改",
   "grade_button": "提交批改",
   "score_label": "总分",
-  "subtitle_prefix": "满分 100 分 | 建议 45 分钟 | 选择答案后点击提交批改"
+  "duration_prefix": "满分 100 分 | 建议 ",
+  "duration_suffix": " 分钟 | 选择答案后点击提交批改"
 }

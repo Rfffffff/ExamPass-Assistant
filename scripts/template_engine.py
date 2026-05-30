@@ -17,9 +17,41 @@ def _read(filename):
     return ''
 
 
+# MathJax 3 config: enable $...$ and $$...$$ delimiters
+_MATHJAX_CONFIG = '<script>MathJax={tex:{inlineMath:[["$","$"],["\\\\(","\\\\)"]],displayMath:[["$$","$$"],["\\\\[","\\\\]"]]}};</script>'
+_MATHJAX_SCRIPT = '<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>'
+
+
 def _page_shell(title, body_html, extra_css='', extra_js=''):
     css = _read('base.css') + '\n' + extra_css
-    return '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8"/>\n<meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n<title>' + title + '</title>\n<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>\n<style>\n' + css + '\n</style>\n' + extra_js + '\n</head>\n<body>\n\n<header id="exampass-header">\n  <div class="header-left"><span class="header-brand">ExamPass Assistant</span></div>\n  <div class="header-right"><span class="header-url">exampass.ai</span></div>\n</header>\n<hr class="header-divider">\n\n' + body_html + '\n\n</body>\n</html>'
+    parts = [
+        '<!DOCTYPE html>',
+        '<html lang="zh-CN">',
+        '<head>',
+        '<meta charset="utf-8"/>',
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>',
+        '<title>' + title + '</title>',
+        _MATHJAX_CONFIG,
+        _MATHJAX_SCRIPT,
+        '<style>',
+        css,
+        '</style>',
+        extra_js,
+        '</head>',
+        '<body>',
+        '',
+        '<header id="exampass-header">',
+        '  <div class="header-left"><span class="header-brand">ExamPass Assistant</span></div>',
+        '  <div class="header-right"><span class="header-url">exampass.ai</span></div>',
+        '</header>',
+        '<hr class="header-divider">',
+        '',
+        body_html,
+        '',
+        '</body>',
+        '</html>',
+    ]
+    return '\n'.join(parts)
 
 
 # ─── Knowledge page ─────────────────────────────────────────────────
@@ -39,7 +71,7 @@ def save_knowledge_html(body_html, output_path, title):
 
 # ─── Interactive test page ──────────────────────────────────────────
 
-def render_test(questions, title, subtitle=''):
+def render_test(questions, title, subtitle='', duration_minutes=30):
     """Generate an interactive test page.
 
     questions: list of dicts with keys:
@@ -50,27 +82,42 @@ def render_test(questions, title, subtitle=''):
       answer: int (0-index for choice/tf, -1 for open-ended)
       explanation: str (HTML allowed)
       pitfall: str (optional)
+
+    duration_minutes: int, defaults to 30
     """
     questions_json = json.dumps(questions, ensure_ascii=False)
     labels = json.loads(_read('test_labels.json'))
     labels_json = json.dumps(labels, ensure_ascii=False)
+
     js_template = _read('test_js_template.js')
     js = js_template.replace('__QUESTIONS_PLACEHOLDER__', questions_json)
     js = js.replace('__LABELS_PLACEHOLDER__', labels_json)
     js = '<script>\n' + js + '\n</script>'
 
+    # Subtitle
     sub_html = ''
     if subtitle:
         sub_html = '<p style="text-align:center;color:var(--ink-light);font-size:0.95em">' + subtitle + '</p>'
+    elif duration_minutes:
+        sub_html = '<p style="text-align:center;color:var(--ink-light);font-size:0.95em">' + labels['duration_prefix'] + str(duration_minutes) + labels['duration_suffix'] + '</p>'
 
-    labels_import = json.loads(_read('test_labels.json'))
-    body = '\n<h1>' + title + '</h1>\n<h2 style="text-align:center">' + labels_import['section']['choice'][0:4] + '</h2>\n' + sub_html + '\n\n<div id="score-box"><div class="score-num" id="score-num">0</div><div class="score-label">' + labels_import['score_label'] + '</div></div>\n<div id="questions-container"></div>\n<div class="grading-bar no-print"><button onclick="gradeAll()" id="grade-btn">' + labels_import['grade_button'] + '</button></div>\n'
+    # Body
+    body_parts = [
+        '<h1>' + title + '</h1>',
+        '<h2 style="text-align:center">' + labels['page_title'] + '</h2>',
+        sub_html,
+        '',
+        '<div id="score-box"><div class="score-num" id="score-num">0</div><div class="score-label">' + labels['score_label'] + '</div></div>',
+        '<div id="questions-container"></div>',
+        '<div class="grading-bar no-print"><button onclick="gradeAll()" id="grade-btn">' + labels['grade_button'] + '</button></div>',
+    ]
+    body = '\n'.join(body_parts)
 
     return _page_shell(title, body, extra_css=_read('test.css'), extra_js=js)
 
 
-def save_test(questions, output_path, title, subtitle=''):
-    html = render_test(questions, title, subtitle)
+def save_test(questions, output_path, title, subtitle='', duration_minutes=30):
+    html = render_test(questions, title, subtitle, duration_minutes)
     out_dir = os.path.dirname(output_path)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
